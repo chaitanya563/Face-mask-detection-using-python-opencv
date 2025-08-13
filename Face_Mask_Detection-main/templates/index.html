@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>MaskAware Face Detection System</title>
+        <link rel="stylesheet" href="static/styles.css">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    </head>
+    <body>
+        <header>
+            <div class="container">
+                <div class="header-content">
+                    <div class="logo">
+                        <i class="fas fa-head-side-mask"></i>
+                        <div>
+                            <h1>MaskAware</h1>
+                            <p class="tagline">Intelligent Face Mask Detection System</p>
+                        </div>
+                    </div>
+                    <div class="user-controls">
+                        <span>Welcome, Admin</span>
+                        <a href="{{ url_for('logout') }}" class="btn btn-danger btn-sm">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
+                <div class="header-wave">
+                    <svg viewBox="0 0 1200 120" preserveAspectRatio="none">
+                        <path d="M0,0V46.29c47.79,22.2,103.59,32.17,158,28,70.36-5.37,136.33-33.31,206.8-37.5C438.64,32.43,512.34,53.67,583,72.05c69.27,18,138.3,24.88,209.4,13.08,36.15-6,69.85-17.84,104.45-29.34C989.49,25,1113-14.29,1200,52.47V0Z" opacity=".25" fill="#fff"></path>
+                        <path d="M0,0V15.81C13,36.92,27.64,56.86,47.69,72.05,99.41,111.27,165,111,224.58,91.58c31.15-10.15,60.09-26.07,89.67-39.8,40.92-19,84.73-46,130.83-49.67,36.26-2.85,70.9,9.42,98.6,31.56,31.77,25.39,62.32,62,103.63,73,40.44,10.79,81.35-6.69,119.13-24.28s75.16-39,116.92-43.05c59.73-5.85,113.28,22.88,168.9,38.84,30.2,8.66,59,6.17,87.09-7.5,22.43-10.89,48-26.93,60.65-49.24V0Z" opacity=".5" fill="#fff"></path>
+                        <path d="M0,0V5.63C149.93,59,314.09,71.32,475.83,42.57c43-7.64,84.23-20.12,127.61-26.46,59-8.63,112.48,12.24,165.56,35.4C827.93,77.22,886,95.24,951.2,90c86.53-7,172.46-45.71,248.8-84.81V0Z" fill="#fff"></path>
+                    </svg>
+                </div>
+            </div>
+        </header>
+        
+        <div class="container">
+            <div class="main-content">
+                <div class="features">
+                    <div class="card">
+                        <div class="card-icon">
+                            <i class="fas fa-brain"></i>
+                        </div>
+                        <h2>Train Model</h2>
+                        <div class="card-content">
+                            <p>Train the face mask detection model with your own dataset. Make sure you have the proper directory structure with mask/no mask images.</p>
+                        </div>
+                        <div class="btn-group">
+                            <button id="train-model-btn" class="btn btn-primary">
+                                <i class="fas fa-cogs"></i> Train Model
+                            </button>
+                        </div>
+                        <div id="train-status" class="status-area">
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill"></div>
+                            </div>
+                            <p id="train-status-text">Training model...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon">
+                            <i class="fas fa-camera"></i>
+                        </div>
+                        <h2>Webcam Detection</h2>
+                        <div class="card-content">
+                            <p>Use your webcam for real-time face mask detection. Make sure your camera is connected and accessible.</p>
+                        </div>
+                        <div class="btn-group">
+                            <button id="start-webcam-btn" class="btn btn-success">
+                                <i class="fas fa-video"></i> Start Detection
+                            </button>
+                            <button id="stop-webcam-btn" class="btn btn-danger" style="display: none;">
+                                <i class="fas fa-video-slash"></i> Stop Detection
+                            </button>
+                        </div>
+                        <div class="webcam-container" id="webcam-container">
+                            <div class="webcam-frame">
+                                <img id="webcam" src="">
+                                <canvas id="canvas" style="display: none;"></canvas>
+                            </div>
+                            <div class="mask-status" id="webcam-status"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-icon">
+                            <i class="fas fa-image"></i>
+                        </div>
+                        <h2>Image Detection</h2>
+                        <div class="card-content">
+                            <p>Upload an image to check if the person in the image is wearing a face mask.</p>
+                        </div>
+                        <div class="upload-container">
+                            <div class="file-drop-area">
+                                <div class="file-message">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                    <p>Drag & drop an image or click to browse</p>
+                                    <span class="file-types">(JPG, PNG, GIF)</span>
+                                </div>
+                                <input class="file-input" type="file" accept="image/*" id="image-upload">
+                            </div>
+                            <div class="preview-container" id="preview-container">
+                                <div class="preview-frame">
+                                    <img class="preview-image" id="preview-image">
+                                </div>
+                            </div>
+                            <div class="loading-spinner" id="image-loading"></div>
+                            <div class="results-container" id="image-results">
+                                <h3>Detection Result:</h3>
+                                <div class="mask-status" id="image-status"></div>
+                            </div>
+                            <button id="process-image-btn" class="btn btn-primary" style="display: none; margin-top: 20px;">
+                                <i class="fas fa-check-circle"></i> Detect Mask
+                            </button>
+                        </div>
+                    </div>
+    
+                    <div class="card">
+                        <div class="card-icon">
+                            <i class="fas fa-chart-pie"></i>
+                        </div>
+                        <h2>Detection Analytics</h2>
+                        <div class="card-content">
+                            <p>View statistics of recent mask detections</p>
+                            <div class="chart-container">
+                                <canvas id="detectionChart"></canvas>
+                            </div>
+                            <div class="stats-summary" id="stats-summary"></div>
+                            <div class="btn-group" style="margin-top: 15px;">
+                                <button id="reset-stats-btn" class="btn btn-warning">
+                                    <i class="fas fa-trash-alt"></i> Reset Statistics
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="sound-alert" id="sound-alert">
+            <i id="sound-alert-icon"></i>
+            <span id="sound-alert-text"></span>
+        </div>
+    
+        <audio id="mask-sound" src="/static/sounds/mask-detected.mp3" preload="auto"></audio>
+        <audio id="no-mask-sound" src="/static/sounds/no-mask-detected.mp3" preload="auto"></audio>
+    
+        <div class="modal" id="status-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 class="modal-title" id="modal-title">Status</h3>
+                    <button class="close-btn" id="close-modal">&times;</button>
+                </div>
+                <div class="modal-body" id="modal-body">
+                    <!-- Content will be dynamically added -->
+                </div>
+            </div>
+        </div>
+        
+        <footer class="footer">
+            <div class="container">
+                <p>&copy; 2025 MaskAware Face Detection System</p>
+                <div class="footer-links">
+                    <a href="#"><i class="fab fa-github"></i></a>
+                    <a href="#"><i class="fas fa-question-circle"></i></a>
+                    <a href="#"><i class="fas fa-envelope"></i></a>
+                </div>
+            </div>
+        </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const trainModelBtn = document.getElementById('train-model-btn');
+            const trainStatus = document.getElementById('train-status');
+            const trainStatusText = document.getElementById('train-status-text');
+            const startWebcamBtn = document.getElementById('start-webcam-btn');
+            const stopWebcamBtn = document.getElementById('stop-webcam-btn');
+            const webcamContainer = document.getElementById('webcam-container');
+            const webcam = document.getElementById('webcam');
+            const canvas = document.getElementById('canvas');
+            const webcamStatus = document.getElementById('webcam-status');
+            const imageUpload = document.getElementById('image-upload');
+            const previewContainer = document.getElementById('preview-container');
+            const previewImage = document.getElementById('preview-image');
+            const processImageBtn = document.getElementById('process-image-btn');
+            const imageLoading = document.getElementById('image-loading');
+            const imageResults = document.getElementById('image-results');
+            const imageStatus = document.getElementById('image-status');
+            const modal = document.getElementById('status-modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const closeModal = document.getElementById('close-modal');
+            const progressBar = document.querySelector('.progress-bar');
+            const progressBarFill = document.querySelector('.progress-bar-fill');
+            const fileDropArea = document.querySelector('.file-drop-area');
+            const resetStatsBtn = document.getElementById('reset-stats-btn');
+            
+            // Sound elements
+            const maskSound = document.getElementById('mask-sound');
+            const noMaskSound = document.getElementById('no-mask-sound');
+            const soundAlert = document.getElementById('sound-alert');
+            const soundAlertIcon = document.getElementById('sound-alert-icon');
+            const soundAlertText = document.getElementById('sound-alert-text');
+
+            // Variables
+            let stream = null;
+            let isModelTrained = false;
+            let detectionInterval = null;
+            let detectionHistory = { mask: 0, noMask: 0 };
+            let detectionChart = null;
+            const STORAGE_KEY = 'maskDetectionHistory';
+
+            // Initialize
+            loadDetectionHistory();
+            initDetectionChart();
+
+            // Sound functions
+            function playMaskSound() {
+                try {
+                    maskSound.currentTime = 0;
+                    maskSound.play().catch(e => console.error("Mask sound error:", e));
+                    showSoundAlert('Mask Detected', 'fas fa-check-circle', 'sound-alert-mask');
+                } catch (e) {
+                    console.error("Error playing mask sound:", e);
+                }
+            }
+
+            function playNoMaskSound() {
+                try {
+                    noMaskSound.currentTime = 0;
+                    noMaskSound.play().catch(e => console.error("No mask sound error:", e));
+                    showSoundAlert('No Mask Detected', 'fas fa-exclamation-circle', 'sound-alert-no-mask');
+                } catch (e) {
+                    console.error("Error playing no mask sound:", e);
+                }
+            }
+
+            function showSoundAlert(text, iconClass, alertClass) {
+                soundAlertIcon.className = iconClass;
+                soundAlertText.textContent = text;
+                soundAlert.className = `sound-alert ${alertClass}`;
+                soundAlert.style.display = 'flex';
+                
+                setTimeout(() => {
+                    soundAlert.style.display = 'none';
+                }, 3000);
+            }
+
+            // Analytics functions
+            function loadDetectionHistory() {
+                const savedHistory = localStorage.getItem(STORAGE_KEY);
+                if (savedHistory) {
+                    detectionHistory = JSON.parse(savedHistory);
+                }
+            }
+
+            function saveDetectionHistory() {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(detectionHistory));
+            }
+
+            function initDetectionChart() {
+                const ctx = document.getElementById('detectionChart').getContext('2d');
+                updateChart();
+            }
+
+            function updateChart() {
+                const ctx = document.getElementById('detectionChart').getContext('2d');
+                const total = detectionHistory.mask + detectionHistory.noMask;
+                
+                if (detectionChart) {
+                    detectionChart.destroy();
+                }
+                
+                detectionChart = new Chart(ctx, {
+                    type: 'pie',
+                    data: {
+                        labels: ['Mask Detected', 'No Mask Detected'],
+                        datasets: [{
+                            data: [detectionHistory.mask, detectionHistory.noMask],
+                            backgroundColor: [
+                                'rgba(76, 201, 240, 0.7)',
+                                'rgba(239, 71, 111, 0.7)'
+                            ],
+                            borderColor: [
+                                'rgba(76, 201, 240, 1)',
+                                'rgba(239, 71, 111, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom',
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        const value = context.raw;
+                                        const percentage = Math.round((value / total) * 100);
+                                        return `${context.label}: ${value} (${percentage}%)`;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                updateStatsSummary();
+                saveDetectionHistory();
+            }
+
+            function updateStatsSummary() {
+                const total = detectionHistory.mask + detectionHistory.noMask;
+                const maskPercentage = total > 0 ? Math.round((detectionHistory.mask / total) * 100) : 0;
+                const noMaskPercentage = total > 0 ? Math.round((detectionHistory.noMask / total) * 100) : 0;
+                
+                document.getElementById('stats-summary').innerHTML = `
+                    Total detections: ${total}<br>
+                    <span class="stats-mask">Masks: ${detectionHistory.mask} (${maskPercentage}%)</span> | 
+                    <span class="stats-no-mask">No Masks: ${detectionHistory.noMask} (${noMaskPercentage}%)</span>
+                `;
+            }
+
+            // Reset stats
+            resetStatsBtn.addEventListener('click', function() {
+                detectionHistory = { mask: 0, noMask: 0 };
+                updateChart();
+                showModal('Statistics Reset', 'Detection statistics have been cleared.');
+            });
+
+            // Model training
+            trainModelBtn.addEventListener('click', function() {
+                trainStatus.style.display = 'block';
+                progressBar.style.display = 'block';
+                trainStatusText.textContent = 'Training model... 0%';
+                
+                fetch('/train', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        isModelTrained = true;
+                        trainStatusText.textContent = `Model training complete! Accuracy: ${(data.accuracy * 100).toFixed(2)}%`;
+                        showModal('Training Complete', `Model training completed successfully with ${(data.accuracy * 100).toFixed(2)}% accuracy.`);
+                    } else {
+                        trainStatusText.textContent = 'Error training model';
+                        showModal('Training Error', 'There was an error training the model.');
+                    }
+                })
+                .catch(error => {
+                    trainStatusText.textContent = 'Error training model';
+                    showModal('Training Error', `Error: ${error.message}`);
+                });
+            });
+            
+            // Webcam handling
+            startWebcamBtn.addEventListener('click', function() {
+                if (!isModelTrained) {
+                    showModal('Model Not Trained', 'Please train the model first before using the webcam detection.');
+                    return;
+                }
+                
+                fetch('/start_detection')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'started') {
+                            webcamContainer.style.display = 'flex';
+                            startWebcamBtn.style.display = 'none';
+                            stopWebcamBtn.style.display = 'inline-flex';
+                            
+                            webcam.src = '/video_feed';
+                            webcamStatus.textContent = 'Detection active';
+                            webcamStatus.className = 'mask-status';
+                        }
+                    })
+                    .catch(error => {
+                        showModal('Camera Error', `Failed to start detection: ${error.message}`);
+                    });
+            });
+
+            stopWebcamBtn.addEventListener('click', function() {
+                fetch('/stop_detection')
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'stopped') {
+                            webcam.srcObject = null;
+                            webcam.src = '';
+                            webcamContainer.style.display = 'none';
+                            startWebcamBtn.style.display = 'inline-flex';
+                            stopWebcamBtn.style.display = 'none';
+                            webcamStatus.textContent = '';
+                        }
+                    });
+            });
+            
+            // Image upload handling
+            imageUpload.addEventListener('change', function(e) {
+                if (e.target.files.length > 0) {
+                    const file = e.target.files[0];
+                    const reader = new FileReader();
+                    
+                    reader.onload = function(event) {
+                        previewImage.src = event.target.result;
+                        previewContainer.style.display = 'block';
+                        processImageBtn.style.display = 'inline-flex';
+                        imageResults.style.display = 'none';
+                    };
+                    
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            processImageBtn.addEventListener('click', function() {
+                if (!isModelTrained) {
+                    showModal('Model Not Trained', 'Please train the model first before analyzing images.');
+                    return;
+                }
+                
+                if (!imageUpload.files.length) {
+                    showModal('No Image', 'Please select an image first.');
+                    return;
+                }
+                
+                imageLoading.style.display = 'block';
+                processImageBtn.style.display = 'none';
+                imageResults.style.display = 'none';
+                
+                const formData = new FormData();
+                formData.append('file', imageUpload.files[0]);
+                
+                fetch('/predict', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    imageLoading.style.display = 'none';
+                    imageResults.style.display = 'block';
+                    
+                    if (data.error) {
+                        imageStatus.textContent = `Error: ${data.error}`;
+                        imageStatus.className = 'mask-status';
+                        return;
+                    }
+                    
+                    if (data.has_mask) {
+                        imageStatus.textContent = `MASK DETECTED (${data.confidence}%) ✓`;
+                        imageStatus.className = 'mask-status status-mask';
+                        detectionHistory.mask++;
+                        playMaskSound();
+                    } else {
+                        imageStatus.textContent = `NO MASK DETECTED (${data.confidence}%) ✗`;
+                        imageStatus.className = 'mask-status status-no-mask';
+                        detectionHistory.noMask++;
+                        playNoMaskSound();
+                    }
+                    
+                    updateChart();
+                    previewImage.src = data.image_url;
+                })
+                .catch(error => {
+                    imageLoading.style.display = 'none';
+                    imageStatus.textContent = `Error: ${error.message}`;
+                    imageStatus.className = 'mask-status';
+                    imageResults.style.display = 'block';
+                });
+            });
+            
+            // File drop area enhancements
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                fileDropArea.addEventListener(eventName, preventDefaults, false);
+            });
+            
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            ['dragenter', 'dragover'].forEach(eventName => {
+                fileDropArea.addEventListener(eventName, highlight, false);
+            });
+            
+            ['dragleave', 'drop'].forEach(eventName => {
+                fileDropArea.addEventListener(eventName, unhighlight, false);
+            });
+            
+            function highlight() {
+                fileDropArea.classList.add('is-active');
+            }
+            
+            function unhighlight() {
+                fileDropArea.classList.remove('is-active');
+            }
+            
+            fileDropArea.addEventListener('drop', handleDrop, false);
+            
+            function handleDrop(e) {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                
+                if (files.length > 0 && files[0].type.startsWith('image/')) {
+                    imageUpload.files = files;
+                    const event = new Event('change', { bubbles: true });
+                    imageUpload.dispatchEvent(event);
+                }
+            }
+            
+            // Modal handling
+            function showModal(title, message) {
+                modalTitle.textContent = title;
+                modalBody.textContent = message;
+                modal.style.display = 'flex';
+            }
+            
+            closeModal.addEventListener('click', function() {
+                modal.style.display = 'none';
+            });
+            
+            window.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
